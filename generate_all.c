@@ -159,7 +159,7 @@ void generate_combinations(char* chars, int n_chars, char* combination, int leng
 
         // Manual check for the password  
         if (strcmp(combination, passwordToCrack) == 0){
-            printf("\n\n\n%s[!]%s Done!%s  Password Found:  %s %s %s  |  %s Tries %s%ld %s\n", YELLOW, GRAY, BLUE, YELLOW, combination, RED, BLUE, YELLOW, tries, RED);
+            printf("\n\n\n\t%s[!]%s Done!%s  Password Found:  %s %s %s  |  %s Tries %s%ld %s\n", YELLOW, GRAY, BLUE, YELLOW, combination, RED, BLUE, YELLOW, tries, RED);
             restoreCursor();
             exit(0);
 
@@ -187,7 +187,7 @@ void perform_brute(int char_of_passwd, int threads){
     pthread_t thread_ids[MAX_THREADS];
     ThreadArguments thread_args[MAX_THREADS];
 
-    printf("\t%s[♦]%s Starting: %sCreating Threads and assigning priority... %s\n\n\n\n", YELLOW, GRAY, BLUE, end);  
+    printf("\t%s[♦]%s Starting: %sCreating Threads and assigning priority... %s\n\n\n", YELLOW, GRAY, BLUE, end);
     disapearCursor();
 
     // Bucle que crea los hilos
