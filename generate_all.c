@@ -14,7 +14,8 @@
 //#define _XOPEN_SOURCE
 //#include <crypt.h>
 
-#define MAX_THREADS 500
+#define MAX_THREADS 200
+#define MIN_THREADS 1
 #define MAX_PASSWORD_CHARS 20
 #define MIN_PASSWORD 4
 
@@ -45,8 +46,8 @@ void banner();
 void check_hash();
 void print_data(int* char_of_passwd, int* threads, char* randomized);
 void* init_combinations(void* arg);
-void generate_combinations(char* chars, int n_chars, char* combination, int length, int index, int start_char, int end_char);
-void perform_brute(int char_of_passwd, int threads);
+void generate_combinations(char* chars, int n_chars, char* combination, int length, int index, int start_char, int end_char, const char* mode);
+void perform_brute(int char_of_passwd, int threads, const char* mode);
 void ctrlCHandler(int sig);
 bool check_args(int* char_of_passwd, int* threads);
 int setParametres(int* password_length, int* threads);
@@ -63,6 +64,7 @@ typedef struct {
     int char_of_passwd;
     int total_threads;
     int thread_id;
+    const char* mode;
 } ThreadArguments;
 
 void ctrlCHandler(int sig) {
@@ -103,7 +105,7 @@ void* init_combinations(void* arg) {
     int char_of_passwd = args->char_of_passwd;
     int total_threads = args->total_threads;
     int thread_id = args->thread_id;
-
+    const char* mode = args->mode;
     int n_chars = strlen(chars);
 
     // Calcula el rango de caracteres que este hilo generará
@@ -120,15 +122,14 @@ void* init_combinations(void* arg) {
     combination[char_of_passwd] = '\0';
     
     // Comienza a generar contraseñas
-    generate_combinations(chars, n_chars, combination, char_of_passwd, 0, start_char, end_char);
+    generate_combinations(chars, n_chars, combination, char_of_passwd, 0, start_char, end_char, mode);
     return NULL;
 }
 
-void generate_combinations(char* chars, int n_chars, char* combination, int length, int index, int start_char, int end_char) {
+void generate_combinations(char* chars, int n_chars, char* combination, int length, int index, int start_char, int end_char, const char* mode) {
     
     // Cuando hemos generado una contraseña completa, imprímela
     if (index == length) {
-          
 
         // Bloquea el mutex antes de modificar 'tries'
         pthread_mutex_lock(&tries_mutex); 
@@ -140,7 +141,10 @@ void generate_combinations(char* chars, int n_chars, char* combination, int leng
         // Desbloquea el mutex después de modificar 'tries'
         pthread_mutex_unlock(&tries_mutex); 
         //printf("%ld\n\n", count);
-        if (count > 65000){
+        if(strcmp(mode, "wordlist") == 0){
+            printf("\n%s", combination);
+
+        } else if (count > 65000 && strcmp(mode, "attack") == 0){
             printf("\t\t%s[♦] Attempt:%s %ld        %sPASSWD: %s%s%s\r", YELLOW, CYAN, tries, YELLOW, CYAN, combination, end);
             //printf("\t\t[♦] Attempt: %ld       PASSWD: %s\r", tries, combination);
             count = 0;
@@ -178,12 +182,11 @@ void generate_combinations(char* chars, int n_chars, char* combination, int leng
     
     for (int i = start_char; i < end_char; i++) {
         combination[index] = chars[i];
-        generate_combinations(chars, n_chars, combination, length, index + 1, 0, n_chars);
+        generate_combinations(chars, n_chars, combination, length, index + 1, 0, n_chars, mode);
     }
 }
 
-
-void perform_brute(int char_of_passwd, int threads){  
+void perform_brute(int char_of_passwd, int threads, const char* mode){
     pthread_t thread_ids[MAX_THREADS];
     ThreadArguments thread_args[MAX_THREADS];
 
@@ -195,6 +198,7 @@ void perform_brute(int char_of_passwd, int threads){
         thread_args[i].char_of_passwd = char_of_passwd;
         thread_args[i].total_threads = threads;
         thread_args[i].thread_id = i;
+        thread_args[i].mode = mode;
 
         // Crear los hilos de ejecución
         pthread_create(&thread_ids[i], NULL, init_combinations, (void*)&thread_args[i]);
@@ -242,13 +246,13 @@ void print_data(int* char_of_passwd, int* threads, char* randomized){
     printf("\n\n\n\t\t     %s----------------------------%s\n", RED, end);
 
     if (*char_of_passwd == 0)
-        printf("\t\t     %s| %sPassword Length:  %s %s\t%s|\n", RED, BLUE, YELLOW, randomized, RED);
+        printf("\t\t     %s| %sPassword Length:  %s %s\t%s   |\n", RED, BLUE, YELLOW, randomized, RED);
             
     else 
-        printf("\t\t     %s| %sPassword Length:  %s %d\t%s|\n", RED, BLUE, YELLOW, *char_of_passwd, RED);
+        printf("\t\t     %s| %sPassword Length:  %s %d\t%s   |\n", RED, BLUE, YELLOW, *char_of_passwd, RED);
     
     printf("\t%s[♦]%s Details: %s----------------------------%s\n", YELLOW, GRAY, RED);
-    printf("\t\t     %s| %sNumber of threads:  %s%d\t%s|  \n", RED, BLUE, YELLOW, *threads, RED);
+    printf("\t\t     %s| %sNumber of threads: %s%d\t  %s |  \n", RED, BLUE, YELLOW, *threads, RED);
     printf("\t\t     ----------------------------%s\n", end);
 
     // Si se ha seleccionado un contraseña a crackear, lo mostramos 
@@ -266,9 +270,13 @@ bool check_args(int* char_of_passwd, int* threads){
 
     //Mensaje de error: Demasiados hilos
     if (*threads > MAX_THREADS) {
-        printf("\n\t%s[!] %sError: Demasiados hilos. Ajusta MAX_THREADS si es necesario.\n%s", RED, YELLOW, end);
+        printf("\n\t%s[!] %sError: Demasiados hilos... (MAX -> 200) \n%s", RED, YELLOW, end);
         
-    } else { ++things; }
+    } else { 
+        if (*threads > MIN_THREADS){
+            ++things; 
+        } else { printf("\n\t%s[!] %sError: Muy pocos hilos... (MIN -> 1)\n%s", RED, YELLOW, end); }
+    }
 
     // Comprobacion de la contraseña
     if (*char_of_passwd <= MIN_PASSWORD){
@@ -358,9 +366,9 @@ void check_hash(){
 
 int main(int argc, char* argv[]) {
     //Variables a comprobar
-    int threads; 
-    int password_length;
-    
+    int threads = 20; 
+    int password_length  = 0;
+    const char* mode = "attack";
     // Atrapamos ctrl + c 
     if (signal(SIGINT, ctrlCHandler) == SIG_ERR) {
         perror("Error al configurar el manejador de señales");
@@ -368,20 +376,27 @@ int main(int argc, char* argv[]) {
         restoreCursor();
     }
 
-        // Print Banner
-    banner();
+    // Print Banner
+    //banner();
 
     // Si existe mas de 1 argumento, analiza los argumentos de línea de comandos
     if (argc > 1){
         
         for (int i = 1; i < argc; i++) {
-            if (strcmp(argv[i], "-t") == 0 && i + 1 < argc) {
+            // Wordlist mode
+            if(strcmp(argv[i], "-w") == 0){
+                mode = "wordlist";
+
+            // Thread arguments
+            } if (strcmp(argv[i], "-t") == 0 && i + 1 < argc) {
                 threads = atoi(argv[i + 1]);
 
+                // Long Password
             } if (strcmp(argv[i], "-l") == 0 && i + 1 < argc) {
                 password_length = atoi(argv[i + 1]);
 
-            } if (strcmp(argv[i], "-p") == 0 && i + 1 < argc){
+                // Set password to found
+            } if (strcmp(argv[i], "-p") == 0 && i + 1 < argc && strcmp(mode, "attack") == 0){
                 strcpy(passwordToCrack, argv[i + 1]);
             }
         }
@@ -390,13 +405,14 @@ int main(int argc, char* argv[]) {
 
     // Especifiamos paremetros
     else { setParametres(&password_length, &threads); }
-    
+
+
     // Miramos si se trata de un hash:
     //check_hash();
     
 
     //Iniciamos fuerza bruta
-    perform_brute(password_length, threads);
+    perform_brute(password_length, threads, mode);
     
     // Mostrar cursor
     restoreCursor();

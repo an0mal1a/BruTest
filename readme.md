@@ -13,21 +13,42 @@ Actualmente no utiliza ningún metodo de hashing, por el momento solo acepta la 
 # Parametros
 
         [*] REQUERIDO
-                 ├──[ -t (thread)] Número de hilos
-                 ├──[ -l (length)] Caracteres de la contraseña a generar
-                 └──[ -p (passwd)] Actual parametro para esepcificar la contraseña a encontrar
+                 ├──{ -t (thread)} Número de hilos
+                 └──{ -l (length)} Caracteres de la contraseña a generar
+
+        [*] Opcional
+                 ├──{ -p (passwd)} Actual parametro para esepcificar la contraseña a encontrar
+                 └──{ -w (wrdlst)} Parametro para generar un diccionario de combinaciones        
+
 
         [!] EJEMPLOS
 
+            {*} FIND PASSWORD "acK2od" with 200 threads and 6 chars of length
+
                 (100 threads)──┐           ┌── (Password)
-                    ./bruTest -t 200 -l 8 -p acK2od 
+                    ./bruTest -t 200 -l 6 -p acK2od 
                                       └─(Long Password)   
         -------------------------------------------------------------------------------
-                                             ┌──(200 threads)                                                              
-                    ./bruTest -t 200 -l 8 -p acK2od 
-                                                    └─(Random Length)   
 
-# Output:
+            {*} Generate Password with random length and 200 threds
+
+                                  ┌──(200 threads)                                                              
+                    ./bruTest -t 200 -l 0
+                                        └─(Random Length)   
+
+        -------------------------------------------------------------------------------        
+
+            {*} Generate DICTIONARY with 200 threads and 8 digits of length
+
+                Logic -> ./bruTest -w -t <threads> -l <password_len> > <name_new_dict>
+
+                                   ┌──(Genrate Dict)                                                              
+                        ./bruTest -w -t 200 -l 0 > dict
+                                               └─(Random Length)   
+
+
+
+# Normal Output:
 
         [*] OUTPUT:
 
@@ -61,6 +82,20 @@ Actualmente no utiliza ningún metodo de hashing, por el momento solo acepta la 
                 
 
                     [!] Done!  Password Found:   acK2od   |   Tries 40624264 
+
+
+# Wordlist Output:
+
+                aaaaaaaa
+                aaaaaaab
+                aaaaaaac
+                aaaaaaad
+                aaaaaaae
+                aaaaaaaf
+                aaaaaaag
+                aaaaaaah
+                ........
+
 
 
 
