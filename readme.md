@@ -3,11 +3,15 @@
 ### En desarrollo...
 Generador de contraseñas, utiliza un algoritmo para generar todas las combinaciones posibles.
 
-Le falta desarrollo, actualmente puedes especificar un contraseña para conseguirla. Este programa genera todas las combinaciones
+Le falta desarrollo, actualmente puedes especificar hash md5. Este programa genera todas las combinaciones
 posibles, puede estar bastante tiempo en ejecucion dependiendo de la longevidad de la contraseña.
 
 Genera millones de contraseñas en apenas segundos.
-Actualmente no utiliza ningún metodo de hashing, por el momento solo acepta la contraseña en claro para comprobar con la generada.
+Implementado metodo MD5 de hash
+
+# Requirements:
+
+    sudo apt-get install libssl-dev
 
 
 # Parametros
@@ -25,9 +29,10 @@ Actualmente no utiliza ningún metodo de hashing, por el momento solo acepta la 
 
             {*} FIND PASSWORD "acK2od" with 200 threads and 6 chars of length
 
-                (100 threads)──┐           ┌── (Password)
+                 (200 threads)──┐           ┌── (Password)
                     ./bruTest -t 200 -l 6 -p acK2od 
                                       └─(Long Password)   
+                                      
         -------------------------------------------------------------------------------
 
             {*} Generate Password with random length and 200 threds
@@ -102,7 +107,7 @@ Actualmente no utiliza ningún metodo de hashing, por el momento solo acepta la 
 # Compilation
 
         ┌──(supervisor㉿parrot)-[~]
-        └─$ gcc -g generate_all.c -o brutest -lpthread
+        └─$ gcc -g generate_all.c -o brutest -lpthread -lcrypto
 
 
 

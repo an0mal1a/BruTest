@@ -9,23 +9,20 @@
 #include <time.h>
 #include <ctype.h>
 #include <signal.h>
+#include <openssl/md5.h>
 
-//#include <openssl/md5.h>
-//#define _XOPEN_SOURCE
-//#include <crypt.h>
-
-#define MAX_THREADS 200
+#define MAX_THREADS 60
 #define MIN_THREADS 1
-#define MAX_PASSWORD_CHARS 20
+#define MAX_PASSWORD_CHARS 33
 #define MIN_PASSWORD 4
 
 //Variables Globales
 char passwordToCrack[MAX_PASSWORD_CHARS] = "";
-const char* target_network = "MOVISTAR_574C";
-const char* file = "/root/EvilHunter_Data/captures/MOVISTAR_574C/capture-01.cap"; 
+//const char* target_network = "MOVISTAR_574C";
+//const char* file = "/root/EvilHunter_Data/captures/MOVISTAR_574C/capture-01.cap"; 
 bool hash = false;
 // Cadena de caracteres que se utilizarán para generar las combinaciones  ABCDEFGHIJKLMNOPQRSTUVWXYZ
-char chars[] = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+char chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 //Colores
 const char *GREEN = "\033[0;32m\033[1m";
@@ -40,15 +37,16 @@ const char *GRAY = "\033[0;37m\033[1m";
 // Prototipo de funciones
 //void set_thread_priority(pthread_t thread_id, int priority);
 void clean();
-void restoreCursor();
-void disapearCursor();
 void banner();
 void check_hash();
-void print_data(int* char_of_passwd, int* threads, char* randomized);
-void* init_combinations(void* arg);
-void generate_combinations(char* chars, int n_chars, char* combination, int length, int index, int start_char, int end_char, const char* mode);
-void perform_brute(int char_of_passwd, int threads, const char* mode);
+void helpPannel(int op);
+void restoreCursor();
+void disapearCursor();
 void ctrlCHandler(int sig);
+void* init_combinations(void* arg);
+void print_data(int* char_of_passwd, int* threads, char* randomized);
+void perform_brute(int char_of_passwd, int threads, const char* mode);
+void generate_combinations(char* chars, int n_chars, char* combination, int length, int index, int start_char, int end_char, const char* mode);
 bool check_args(int* char_of_passwd, int* threads);
 int setParametres(int* password_length, int* threads);
 
@@ -58,6 +56,9 @@ long count = 0;
 
 // Mutex global para proteger 'tries'
 pthread_mutex_t tries_mutex = PTHREAD_MUTEX_INITIALIZER;
+// Mutex global para proteger 'count
+pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 
 // Estructura para pasar los argumentos a generate_passwords
 typedef struct {
@@ -66,6 +67,13 @@ typedef struct {
     int thread_id;
     const char* mode;
 } ThreadArguments;
+
+void print_md5_hash(unsigned char* md) {
+    int i;
+    for(i = 0; i < MD5_DIGEST_LENGTH; i++)
+        printf("%02x", md[i]);
+    printf("\n%s", RED);
+}
 
 void ctrlCHandler(int sig) {
     // Exit ctrl + c
@@ -80,6 +88,47 @@ void restoreCursor(){
 
 void disapearCursor(){
     system("tput civis");
+}
+
+void helpPannel(int op){
+    
+    if (op == 1){
+        banner();
+        printf("\n\n[*] OPTIONS:\n");
+        printf("\n\t -w        --> Este modo se utiliza para generar todas las combinaciones en formato de diccionario, imprimiendo todas las combinaciones.");
+        printf("\n\t -t	   --> Especificar el número de hilos.");
+        printf("\n\t -p        --> Especificar la contraseña en hash MD5 a crackear.");
+        printf("\n\t -l	   --> Especificar el largo de la contraseña. Usa 0 para que sea aleatorio.");
+        printf("\n\t -h        -->  Muestra este panel de ayuda");
+        printf("\n\t--help     --> Muestra más ayuda.\n");
+
+    } else {
+        printf("\n[*] REQUERIDO\n");
+        printf("\t ├──{ -t (thread) } Número de hilos");
+        printf("\n\t └──{ -l (length) } Caracteres de la contraseña a generar\n");
+        
+        printf("\n[*] Eleccion");
+        printf("\n\t ├──{ -p (passwd) } Contraseña en MD5");
+        printf("\n\t └──{ -w (wrdlst) } Parametro para generar un diccionario de combinaciones");
+        
+        printf("\n\n\n[!] EJEMPLOS\n");
+        
+        printf("\n\t{*} FIND PASSWORD 'acK2od' with 200 threads and 6 chars of length");
+        printf("\n\t\t(200 threads)──┐           ┌── (Password)");
+        printf("\n\t\t    ./bruTest -t 200 -l 6 -p acK2od ");
+        printf("\n\t\t                      └─(Long Password)");
+        printf("\n\n-------------------------------------------------------------------------------\n");
+        printf("\n\t{*} Generate Password with random length and 200 threds\n");
+        printf("\n\t\t            ┌──(200 threads)");
+        printf("\n\t\t./bruTest -t 200 -l 0");
+        printf("\n\t\t                   └─(Random Length)");
+        printf("\n\n-------------------------------------------------------------------------------\n");
+        printf("\n\t{*} Generate DICTIONARY with 200 threads and 8 digits of length\n");
+        printf("\n\t\tLogic -> ./bruTest -w -t <threads> -l <password_len> > <name_new_dict>");
+        printf("\n\t\t             ┌──(Genrate Dict");
+        printf("\n\t\t  ./bruTest -w -t 200 -l 0 > dict");
+        printf("\n\t\t                        └─(Random Length)\n");                
+    }
 }
 
 void banner(){
@@ -135,11 +184,20 @@ void generate_combinations(char* chars, int n_chars, char* combination, int leng
         pthread_mutex_lock(&tries_mutex); 
 
         // Incrementa 'tries' dentro de la sección crítica protegida por el mutex
-        tries++; 
+        tries++;
+        
+        // Desbloquea el mutex después de modificar 'tries'
+        pthread_mutex_unlock(&tries_mutex);
+         
+        // Bloquea el mutex antes de modificar 'count'
+        pthread_mutex_lock(&count_mutex);
+        
+        // Incrementa 'count' dentro de la sección crítica protegida por el mutex
         count++;
 
-        // Desbloquea el mutex después de modificar 'tries'
-        pthread_mutex_unlock(&tries_mutex); 
+        // Desbloquea el mutex después de modificar 'count'
+        pthread_mutex_unlock(&count_mutex);
+
         //printf("%ld\n\n", count);
         if(strcmp(mode, "wordlist") == 0){
             printf("\n%s", combination);
@@ -150,31 +208,23 @@ void generate_combinations(char* chars, int n_chars, char* combination, int leng
             count = 0;
         }
         
-        /* Variables para el hash
-        unsigned char result[MD5_DIGEST_LENGTH];
-        MD5_CTX md5;  
-        MD5_Init(&md5);
-        MD5_Update(&md5, combination, strlen(combination));
-        MD5_Final(result, &md5);
-        char md5String[33];
-        for (int i = 0; i < MD5_DIGEST_LENGTH; i++) {
-            snprintf(md5String + i * 2, 3, "%02x", result[i]);
-        }*/
-
-        // Manual check for the password  
-        if (strcmp(combination, passwordToCrack) == 0){
+        unsigned char digest[MD5_DIGEST_LENGTH];
+        MD5((unsigned char*)combination, strlen(combination), (unsigned char*)&digest);
+  
+        // Compara el hash generado con el hash introducido
+        if(memcmp(digest, passwordToCrack, MD5_DIGEST_LENGTH) == 0) {
             printf("\n\n\n\t%s[!]%s Done!%s  Password Found:  %s %s %s  |  %s Tries %s%ld %s\n", YELLOW, GRAY, BLUE, YELLOW, combination, RED, BLUE, YELLOW, tries, RED);
             restoreCursor();
             exit(0);
+        } 
 
-        } /*else if (strcmp(md5String, passwordToCrack) == 0){
-            printf("\n\n\n%s[!]%s Done!%s  Password Found:  %s %s %s  |  %s Tries %s%d %s\n", YELLOW, GRAY, BLUE, YELLOW, combination, RED, BLUE, YELLOW, tries, RED);
+        // Manual check for the password  
+        /*if (strcmp(combination, "acK12") == 0){
+            printf("\n\n\n\t%s[*]%s Done!%s  Password Found:  %s %s %s  |  %s Tries %s%ld %s\n", YELLOW, GRAY, BLUE, YELLOW, combination, RED, BLUE, YELLOW, tries, RED);
             restoreCursor();
             exit(0);
-        }*/
 
-        // Ejecutamos el comando
-        //run_check_command(combination);
+        }*/
 
         return;
     }
@@ -257,8 +307,9 @@ void print_data(int* char_of_passwd, int* threads, char* randomized){
 
     // Si se ha seleccionado un contraseña a crackear, lo mostramos 
     if (strcmp(passwordToCrack, "") != 0)
-        printf("\t\t       %sPasswordToCrack: %s%s%s \n\n", BLUE, YELLOW, passwordToCrack, RED);
-        printf("\t--------------------------------------------------------%s\n", end);
+        printf("\t\t       %sPasswordToCrack: %s ", BLUE, YELLOW);
+        print_md5_hash(passwordToCrack);
+        printf("\n\t--------------------------------------------------------%s\n", end);
     
     printf("%s\n", end);
 }
@@ -270,7 +321,7 @@ bool check_args(int* char_of_passwd, int* threads){
 
     //Mensaje de error: Demasiados hilos
     if (*threads > MAX_THREADS) {
-        printf("\n\t%s[!] %sError: Demasiados hilos... (MAX -> 200) \n%s", RED, YELLOW, end);
+        printf("\n\t%s[!] %sError: Demasiados hilos... (MAX -> 60) \n%s", RED, YELLOW, end);
         
     } else { 
         if (*threads > MIN_THREADS){
@@ -291,7 +342,7 @@ bool check_args(int* char_of_passwd, int* threads){
         
     } else { ++things; }
     
-    things = things + check_file(file);
+    //things = things + check_file(file);
 
     if (things == 2){     
         
@@ -384,9 +435,17 @@ int main(int argc, char* argv[]) {
         
         for (int i = 1; i < argc; i++) {
             // Wordlist mode
+            if(strcmp(argv[i], "-h") == 0){
+                helpPannel(1);
+                exit(0);
+            } else if(strcmp(argv[i], "--help") == 0){
+                helpPannel(0);
+                exit(0);
+            }
+
             if(strcmp(argv[i], "-w") == 0){
                 mode = "wordlist";
-
+                
             // Thread arguments
             } if (strcmp(argv[i], "-t") == 0 && i + 1 < argc) {
                 threads = atoi(argv[i + 1]);
@@ -397,7 +456,19 @@ int main(int argc, char* argv[]) {
 
                 // Set password to found
             } if (strcmp(argv[i], "-p") == 0 && i + 1 < argc && strcmp(mode, "attack") == 0){
-                strcpy(passwordToCrack, argv[i + 1]);
+                if(strlen(argv[i + 1]) != 32) {
+                    printf("Error: el hash debe ser una cadena de 32 caracteres hexadecimales.\n");
+                    return 1;
+                }
+                for(int j = 0; j < 32; j++) {
+                    if(!((argv[i + 1][j] >= '0' && argv[i + 1][j] <= '9') || (argv[i + 1][j] >= 'a' && argv[i + 1][j] <= 'f'))) {
+                        printf("Error: el hash debe ser una cadena de 32 caracteres hexadecimales.\n");
+                        return 1;
+                    }
+                }
+                for(int j = 0; j < MD5_DIGEST_LENGTH; j++) {
+                    sscanf(&argv[i + 1][j*2], "%2hhx", &passwordToCrack[j]);
+                }
             }
         }
         check_args(&password_length, &threads);
