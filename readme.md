@@ -3,7 +3,7 @@
 ### En desarrollo...
 Generador de contraseñas, utiliza un algoritmo para generar todas las combinaciones posibles.
 
-Le falta desarrollo, actualmente puedes especificar hash md5. Este programa genera todas las combinaciones
+Le falta desarrollo, actualmente puedes especificar hash md5 o sha256. Este programa genera todas las combinaciones
 posibles, puede estar bastante tiempo en ejecucion dependiendo de la longevidad de la contraseña.
 
 Genera millones de contraseñas en apenas segundos.
@@ -18,11 +18,11 @@ Implementado metodo MD5 de hash
 
         [*] REQUERIDO
                  ├──{ -t (thread)} Número de hilos
+                 ├──{ -p (passwd)} Parametro para esepcificar el hash MD5 / SHA-256
                  └──{ -l (length)} Caracteres de la contraseña a generar
 
         [*] Opcional
-                 ├──{ -p (passwd)} Actual parametro para esepcificar la contraseña a encontrar
-                 └──{ -w (wrdlst)} Parametro para generar un diccionario de combinaciones        
+                 └──{ -d (dict)} Parametro para generar un diccionario de combinaciones        
 
 
         [!] EJEMPLOS
