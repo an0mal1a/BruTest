@@ -7,7 +7,7 @@ Le falta desarrollo, actualmente puedes especificar hash md5 o sha256. Este prog
 posibles, puede estar bastante tiempo en ejecucion dependiendo de la longevidad de la contraseña.
 
 Genera millones de contraseñas en apenas segundos.
-Implementado metodo MD5 de hash
+Implementado metodo MD5 y SHA-256 de hash
 
 # Requirements:
 
