@@ -121,20 +121,16 @@ void helpPannel(int op){
         
         printf("\n\n\n[!] EJEMPLOS\n");
         
-        printf("\n\t{*} FIND PASSWORD 'acK2od' with 60 threads and 6 chars of length");
-        printf("\n\t\t(200 threads)──┐           ┌── (Password)");
-        printf("\n\t\t    ./bruTest -t 60 -l 6 -p acK2od ");
+        printf("\n\t{*} FIND PASSWORD 'halA2k' with 60 threads and 6 chars of length\n");
+        printf("\n\t\t ./bruTest -t <threads> -l <password_len> -p <md5/sha-256>\n");
+        printf("\n\t\t (200 threads)──┐          ┌── (Password)");
+        printf("\n\t\t    ./bruTest -t 60 -l 6 -p e0f252c678964405c8ef7d31a4e6334a ");
         printf("\n\t\t                      └─(Long Password)");
-        printf("\n\n-------------------------------------------------------------------------------\n");
-        printf("\n\t{*} Generate Password with random length and 60 threds\n");
-        printf("\n\t\t            ┌──(60 threads)");
-        printf("\n\t\t./bruTest -t 60 -l 0");
-        printf("\n\t\t                   └─(Random Length)");
-        printf("\n\n-------------------------------------------------------------------------------\n");
+        printf("\n\n-----------------------------------------------------------------------------------------\n");
         printf("\n\t{*} Generate DICTIONARY with 60 threads and 8 digits of length\n");
-        printf("\n\t\tLogic -> ./bruTest -w -t <threads> -l <password_len> > <name_new_dict>");
-        printf("\n\t\t             ┌──(Genrate Dict");
-        printf("\n\t\t  ./bruTest -d -t 60 -l 0 > dict");
+        printf("\n\t\t ./bruTest -d -t <threads> -l <password_len> > <name_new_dict>\n");
+        printf("\n\t     (Genrate Dict)───┐            ┌──(Send Output to File)");
+        printf("\n\t\t   ./bruTest -d -t 60 -l 0 > dict");
         printf("\n\t\t                        └─(Random Length)\n");                
     }
 }
