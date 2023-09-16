@@ -27,29 +27,22 @@ Implementado metodo MD5 y SHA-256 de hash
 
         [!] EJEMPLOS
 
-            {*} FIND PASSWORD "acK2od" with 200 threads and 6 chars of length
+            {*} FIND PASSWORD "halA2k" with 60 threads and 6 chars of length
 
                  (200 threads)──┐           ┌── (Password)
-                    ./bruTest -t 200 -l 6 -p acK2od 
-                                      └─(Long Password)   
-                                      
-        -------------------------------------------------------------------------------
-
-            {*} Generate Password with random length and 200 threds
-
-                                  ┌──(200 threads)                                                              
-                    ./bruTest -t 200 -l 0
-                                        └─(Random Length)   
+                    ./bruTest -t 60 -l 0 -p e0f252c678964405c8ef7d31a4e6334a 
+                                      └─(Random Length)   
+                                
 
         -------------------------------------------------------------------------------        
 
-            {*} Generate DICTIONARY with 200 threads and 8 digits of length
+            {*} Generate DICTIONARY with 60 threads and 8 digits of length
 
                 Logic -> ./bruTest -w -t <threads> -l <password_len> > <name_new_dict>
 
-                                   ┌──(Genrate Dict)                                                              
-                        ./bruTest -w -t 200 -l 0 > dict
-                                               └─(Random Length)   
+                  (Genrate Dict)───┐             ┌──(Send Output to File)
+                        ./bruTest -d -t 60 -l 12 > dict  
+                                              └─(Password Length)   
 
 
 
@@ -76,7 +69,7 @@ Implementado metodo MD5 y SHA-256 de hash
                    [♦] Details: ----------------------------
                                 | Number of threads:  250  |  
                                 ----------------------------
-                                   PasswordToCrack: acK2od 
+                                   PasswordToCrack: MD5 -> e0f252c678964405c8ef7d31a4e6334a 
                 
                     --------------------------------------------------------
                 
@@ -86,7 +79,7 @@ Implementado metodo MD5 y SHA-256 de hash
                         [♦] Attempt: 40560624        PASSWD: acKlFB
                 
 
-                    [!] Done!  Password Found:   acK2od   |   Tries 40624264 
+                    [!] Done!  Password Found:   halA2k   |   Tries 40624264 
 
 
 # Wordlist Output:
